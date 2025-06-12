@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>NACHA Parser</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 <div class="container">
@@ -17,131 +18,182 @@
         </div>
     </div>
 
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="nacha_file" accept=".txt" required>
-        <button type="submit">Upload & Parse</button>
+    <form method="POST" enctype="multipart/form-data" class="upload-form">
+        <div class="file-upload-wrapper">
+            <label for="nacha-file" class="file-upload-label">
+                <i class="fas fa-file-upload"></i>
+                <span id="file-name">Choose NACHA file (.txt)</span>
+            </label>
+            <input type="file" id="nacha-file" name="nacha_file" accept=".txt" required>
+        </div>
+        <button type="submit" class="parse-button">
+            <i class="fas fa-cogs"></i> Parse File
+        </button>
     </form>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
     {% if data %}
-        <div class="section">
-            <h2>File Header (Record Type 1, Position 1–94)</h2>
-            <table>
-                <tbody>
-                    <!-- File Header fields -->
-                    <tr><th>Priority Code (01–02)</th><td>{{ data['File Header']['Priority Code'] }}</td></tr>
-                    <tr><th>Immediate Destination (03–12)</th><td>{{ data['File Header']['Immediate Destination'] }}</td></tr>
-                    <tr><th>Immediate Origin (13–22)</th><td>{{ data['File Header']['Immediate Origin'] }}</td></tr>
-                    <tr><th>File Creation Date (23–28)</th><td>{{ data['File Header']['File Creation Date'] }}</td></tr>
-                    <tr><th>File Creation Time (29–32)</th><td>{{ data['File Header']['File Creation Time'] }}</td></tr>
-                    <tr><th>File ID Modifier (33)</th><td>{{ data['File Header']['File ID Modifier'] }}</td></tr>
-                    <tr><th>Record Size (34–36)</th><td>{{ data['File Header']['Record Size'] }}</td></tr>
-                    <tr><th>Blocking Factor (37–39)</th><td>{{ data['File Header']['Blocking Factor'] }}</td></tr>
-                    <tr><th>Format Code (40)</th><td>{{ data['File Header']['Format Code'] }}</td></tr>
-                    <tr><th>Immediate Destination Name (41–63)</th><td>{{ data['File Header']['Immediate Destination Name'] }}</td></tr>
-                    <tr><th>Immediate Origin Name (64–86)</th><td>{{ data['File Header']['Immediate Origin Name'] }}</td></tr>
-                    <tr><th>Reference Code (87–94)</th><td>{{ data['File Header']['Reference Code'] }}</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        {% for batch in data['Batches'] %}
-            <div class="batch-card">
-                <div class="section-header">Batch - {{ batch['Batch Header']['Company Name'] }}</div>
-
-                <div class="batch-section batch-header-section">
-                    <h3>Batch Header (Record Type 5, Position 1–94)</h3>
+        <div class="results-container">
+            <div class="section file-header-section">
+                <h2><i class="fas fa-file-alt"></i> File Header (Record Type 1, Position 1–94)</h2>
+                <div class="table-container">
                     <table>
                         <tbody>
-                            <!-- Batch Header fields -->
-                            <tr><th>Service Class Code (02–04)</th><td>{{ batch['Batch Header']['Service Class Code'] }}</td></tr>
-                            <tr><th>Company Name (05–20)</th><td>{{ batch['Batch Header']['Company Name'] }}</td></tr>
-                            <tr><th>Company Discretionary Data (21–40)</th><td>{{ batch['Batch Header']['Company Discretionary Data'] }}</td></tr>
-                            <tr><th>Company Identification (41–50)</th><td>{{ batch['Batch Header']['Company Identification'] }}</td></tr>
-                            <tr><th>Standard Entry Class Code (51–53)</th><td>{{ batch['Batch Header']['Standard Entry Class Code'] }}</td></tr>
-                            <tr><th>Company Entry Description (54–63)</th><td>{{ batch['Batch Header']['Company Entry Description'] }}</td></tr>
-                            <tr><th>Company Descriptive Date (64–69)</th><td>{{ batch['Batch Header']['Company Descriptive Date'] }}</td></tr>
-                            <tr><th>Effective Entry Date (70–75)</th><td>{{ batch['Batch Header']['Effective Entry Date'] }}</td></tr>
-                            <tr><th>Settlement Date (76–78)</th><td>{{ batch['Batch Header']['Settlement Date'] }}</td></tr>
-                            <tr><th>Originator Status Code (79)</th><td>{{ batch['Batch Header']['Originator Status Code'] }}</td></tr>
-                            <tr><th>Originating DFI Identification (80–87)</th><td>{{ batch['Batch Header']['Originating DFI Identification'] }}</td></tr>
-                            <tr><th>Batch Number (88–94)</th><td>{{ batch['Batch Header']['Batch Number'] }}</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="batch-section transaction-section">
-                    <h3>Transaction Details (Record Type 6, Position 1–94)</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Transaction Code (02–03)</th>
-                                <th>Receiving DFI Identification (04–11)</th>
-                                <th>Check Digit (12)</th>
-                                <th>DFI Account Number (13–29)</th>
-                                <th>Amount (30–39)</th>
-                                <th>Individual ID Number (40–54)</th>
-                                <th>Individual Name (55–76)</th>
-                                <th>Discretionary Data (77–78)</th>
-                                <th>Addenda Record Indicator (79)</th>
-                                <th>Trace Number (80–94)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for entry in batch['Entry Details'] %}
-                                <tr>
-                                    <td>{{ entry['Transaction Code'] }}</td>
-                                    <td>{{ entry['Receiving DFI Identification'] }}</td>
-                                    <td>{{ entry['Check Digit'] }}</td>
-                                    <td>{{ entry['DFI Account Number'] }}</td>
-                                    <td>{{ entry['Amount'] }}</td>
-                                    <td>{{ entry['Individual Identification Number'] }}</td>
-                                    <td>{{ entry['Individual Name'] }}</td>
-                                    <td>{{ entry['Discretionary Data'] }}</td>
-                                    <td>{{ entry['Addenda Record Indicator'] }}</td>
-                                    <td>{{ entry['Trace Number'] }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="batch-section control-record-section">
-                    <h3>Batch Control (Record Type 8, Position 1–94)</h3>
-                    <table>
-                        <tbody>
-                            <!-- Batch Control fields -->
-                            <tr><th>Service Class Code (02–04)</th><td>{{ batch['Batch Control']['Service Class Code'] }}</td></tr>
-                            <tr><th>Entry/Addenda Count (05–10)</th><td>{{ batch['Batch Control']['Entry/Addenda Count'] }}</td></tr>
-                            <tr><th>Entry Hash (11–20)</th><td>{{ batch['Batch Control']['Entry Hash'] }}</td></tr>
-                            <tr><th>Total Debit Entry Dollar Amount (21–32)</th><td>{{ batch['Batch Control']['Total Debit Entry Dollar Amount'] }}</td></tr>
-                            <tr><th>Total Credit Entry Dollar Amount (33–44)</th><td>{{ batch['Batch Control']['Total Credit Entry Dollar Amount'] }}</td></tr>
-                            <tr><th>Company Identification (45–54)</th><td>{{ batch['Batch Control']['Company Identification'] }}</td></tr>
-                            <tr><th>Message Authentication Code (55–73)</th><td>{{ batch['Batch Control']['Message Authentication Code'] }}</td></tr>
-                            <tr><th>Reserved (74–79)</th><td>{{ batch['Batch Control']['Reserved'] }}</td></tr>
-                            <tr><th>Originating DFI Identification (80–87)</th><td>{{ batch['Batch Control']['Originating DFI Identification'] }}</td></tr>
-                            <tr><th>Batch Number (88–94)</th><td>{{ batch['Batch Control']['Batch Number'] }}</td></tr>
+                            <tr><th>Priority Code (01–02)</th><td>{{ data['File Header']['Priority Code'] }}</td></tr>
+                            <tr><th>Immediate Destination (03–12)</th><td>{{ data['File Header']['Immediate Destination'] }}</td></tr>
+                            <tr><th>Immediate Origin (13–22)</th><td>{{ data['File Header']['Immediate Origin'] }}</td></tr>
+                            <tr><th>File Creation Date (23–28)</th><td>{{ data['File Header']['File Creation Date'] }}</td></tr>
+                            <tr><th>File Creation Time (29–32)</th><td>{{ data['File Header']['File Creation Time'] }}</td></tr>
+                            <tr><th>File ID Modifier (33)</th><td>{{ data['File Header']['File ID Modifier'] }}</td></tr>
+                            <tr><th>Record Size (34–36)</th><td>{{ data['File Header']['Record Size'] }}</td></tr>
+                            <tr><th>Blocking Factor (37–39)</th><td>{{ data['File Header']['Blocking Factor'] }}</td></tr>
+                            <tr><th>Format Code (40)</th><td>{{ data['File Header']['Format Code'] }}</td></tr>
+                            <tr><th>Immediate Destination Name (41–63)</th><td>{{ data['File Header']['Immediate Destination Name'] }}</td></tr>
+                            <tr><th>Immediate Origin Name (64–86)</th><td>{{ data['File Header']['Immediate Origin Name'] }}</td></tr>
+                            <tr><th>Reference Code (87–94)</th><td>{{ data['File Header']['Reference Code'] }}</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-        {% endfor %}
 
-        <div class="section">
-            <h2>File Control (Record Type 9, Position 1–94)</h2>
-            <table>
-                <tbody>
-                    <!-- File Control fields -->
-                    <tr><th>Batch Count (02–07)</th><td>{{ data['File Control']['Batch Count'] }}</td></tr>
-                    <tr><th>Block Count (08–13)</th><td>{{ data['File Control']['Block Count'] }}</td></tr>
-                    <tr><th>Entry/Addenda Count (14–21)</th><td>{{ data['File Control']['Entry/Addenda Count'] }}</td></tr>
-                    <tr><th>Entry Hash (22–31)</th><td>{{ data['File Control']['Entry Hash'] }}</td></tr>
-                    <tr><th>Total Debit Entry Dollar Amount (32–43)</th><td>{{ data['File Control']['Total Debit Entry Dollar Amount'] }}</td></tr>
-                    <tr><th>Total Credit Entry Dollar Amount (44–55)</th><td>{{ data['File Control']['Total Credit Entry Dollar Amount'] }}</td></tr>
-                    <tr><th>Reserved (56–94)</th><td>{{ data['File Control']['Reserved'] }}</td></tr>
-                </tbody>
-            </table>
+            {% for batch in data['Batches'] %}
+                <div class="batch-card">
+                    <div class="section-header">
+                        <i class="fas fa-layer-group"></i> Batch - {{ batch['Batch Header']['Company Name'] }} (Batch #{{ batch['Batch Header']['Batch Number'] }}, SEC: {{ batch['Batch Header']['Standard Entry Class Code'] }})
+                    </div>
+
+                    <div class="batch-section batch-header-section">
+                        <h3><i class="fas fa-heading"></i> Batch Header (Record Type 5, Position 1–94)</h3>
+                        <div class="table-container">
+                            <table>
+                                <tbody>
+                                    <tr><th>Service Class Code (02–04)</th><td>{{ batch['Batch Header']['Service Class Code'] }}</td></tr>
+                                    <tr><th>Company Name (05–20)</th><td>{{ batch['Batch Header']['Company Name'] }}</td></tr>
+                                    <tr><th>Company Discretionary Data (21–40)</th><td>{{ batch['Batch Header']['Company Discretionary Data'] }}</td></tr>
+                                    <tr><th>Company Identification (41–50)</th><td>{{ batch['Batch Header']['Company Identification'] }}</td></tr>
+                                    <tr><th>Standard Entry Class Code (51–53)</th><td>{{ batch['Batch Header']['Standard Entry Class Code'] }}</td></tr>
+                                    <tr><th>Company Entry Description (54–63)</th><td>{{ batch['Batch Header']['Company Entry Description'] }}</td></tr>
+                                    <tr><th>Company Descriptive Date (64–69)</th><td>{{ batch['Batch Header']['Company Descriptive Date'] }}</td></tr>
+                                    <tr><th>Effective Entry Date (70–75)</th><td>{{ batch['Batch Header']['Effective Entry Date'] }}</td></tr>
+                                    <tr><th>Settlement Date (76–78)</th><td>{{ batch['Batch Header']['Settlement Date'] }}</td></tr>
+                                    <tr><th>Originator Status Code (79)</th><td>{{ batch['Batch Header']['Originator Status Code'] }}</td></tr>
+                                    <tr><th>Originating DFI Identification (80–87)</th><td>{{ batch['Batch Header']['Originating DFI Identification'] }}</td></tr>
+                                    <tr><th>Batch Number (88–94)</th><td>{{ batch['Batch Header']['Batch Number'] }}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="batch-section transaction-section">
+                        <h3><i class="fas fa-exchange-alt"></i> Transaction Details (Record Type 6, Position 1–94)</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Flow</th>
+                                        <th>Code</th>
+                                        <th>Receiving DFI</th>
+                                        <th>Account #</th>
+                                        <th>Amount</th>
+                                        <th>Individual Name</th>
+                                        <th>Trace Number</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for entry in batch['Entry Details'] %}
+                                        <tr data-entry-class="{{ entry['Entry Class'].replace(' ', '-') }}">
+                                            <td>
+                                                <span class="badge badge-{% if entry['Transaction Type'] == 'Debit' %}danger{% else %}success{% endif %}">
+                                                    {{ entry['Transaction Type'] }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-{% if entry['Entry Class'] == 'Bank to Card' %}primary{% elif entry['Entry Class'] == 'Card to Bank' %}warning{% else %}info{% endif %}">
+                                                    {{ entry['Entry Class'] }}
+                                                </span>
+                                            </td>
+                                            <td>{{ entry['Transaction Code'] }}</td>
+                                            <td>{{ entry['Receiving DFI Identification'] }}{{ entry['Check Digit'] }}</td>
+                                            <td>{{ entry['DFI Account Number'] }}</td>
+                                            <td class="amount {% if entry['Transaction Type'] == 'Debit' %}debit{% else %}credit{% endif %}">
+                                                ${{ entry['Amount'] }}
+                                            </td>
+                                            <td>{{ entry['Individual Name'] }}</td>
+                                            <td>{{ entry['Trace Number'] }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="batch-section control-record-section">
+                        <h3><i class="fas fa-calculator"></i> Batch Control (Record Type 8, Position 1–94)</h3>
+                        <div class="table-container">
+                            <table>
+                                <tbody>
+                                    <tr><th>Service Class Code (02–04)</th><td>{{ batch['Batch Control']['Service Class Code'] }}</td></tr>
+                                    <tr><th>Entry/Addenda Count (05–10)</th><td>{{ batch['Batch Control']['Entry/Addenda Count'] }}</td></tr>
+                                    <tr><th>Entry Hash (11–20)</th><td>{{ batch['Batch Control']['Entry Hash'] }}</td></tr>
+                                    <tr>
+                                        <th>Total Debit Amount (21–32)</th>
+                                        <td class="amount debit">${{ batch['Batch Control']['Total Debit Entry Dollar Amount'] }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Total Credit Amount (33–44)</th>
+                                        <td class="amount credit">${{ batch['Batch Control']['Total Credit Entry Dollar Amount'] }}</td>
+                                    </tr>
+                                    <tr><th>Company Identification (45–54)</th><td>{{ batch['Batch Control']['Company Identification'] }}</td></tr>
+                                    <tr><th>Message Auth Code (55–73)</th><td>{{ batch['Batch Control']['Message Authentication Code'] }}</td></tr>
+                                    <tr><th>Originating DFI ID (80–87)</th><td>{{ batch['Batch Control']['Originating DFI Identification'] }}</td></tr>
+                                    <tr><th>Batch Number (88–94)</th><td>{{ batch['Batch Control']['Batch Number'] }}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <div class="section file-control-section">
+                <h2><i class="fas fa-file-contract"></i> File Control (Record Type 9, Position 1–94)</h2>
+                <div class="table-container">
+                    <table>
+                        <tbody>
+                            <tr><th>Batch Count (02–07)</th><td>{{ data['File Control']['Batch Count'] }}</td></tr>
+                            <tr><th>Block Count (08–13)</th><td>{{ data['File Control']['Block Count'] }}</td></tr>
+                            <tr><th>Entry/Addenda Count (14–21)</th><td>{{ data['File Control']['Entry/Addenda Count'] }}</td></tr>
+                            <tr><th>Entry Hash (22–31)</th><td>{{ data['File Control']['Entry Hash'] }}</td></tr>
+                            <tr>
+                                <th>Total Debit Amount (32–43)</th>
+                                <td class="amount debit">${{ data['File Control']['Total Debit Entry Dollar Amount'] }}</td>
+                            </tr>
+                            <tr>
+                                <th>Total Credit Amount (44–55)</th>
+                                <td class="amount credit">${{ data['File Control']['Total Credit Entry Dollar Amount'] }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     {% endif %}
 </div>
+
+<script>
+    document.getElementById('nacha-file').addEventListener('change', function(e) {
+        const fileName = e.target.files[0] ? e.target.files[0].name : 'Choose NACHA file (.txt)';
+        document.getElementById('file-name').textContent = fileName;
+    });
+</script>
 </body>
 </html>
