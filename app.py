@@ -21,7 +21,7 @@ def determine_transaction_type(transaction_code):
         entry_class = 'Bank to Card' if transaction_type == 'Credit' else 'Card to Bank'
     elif transaction_code in ['32', '33', '34', '37', '38', '39']:
         entry_class = 'Card to Bank' if transaction_type == 'Debit' else 'Bank to Card'
-    elif transaction_code in ['22', '26', '31', '36']:
+    elif transaction_code in ['21', '26', '31', '36']:
         entry_class = 'Direct Deposit'
     else:
         entry_class = 'Unknown'
@@ -33,6 +33,11 @@ def parse_nacha_grouped(content):
     file_control = None
     batches = []
     current_batch = None
+    
+    # Initialize totals for file control
+    total_debit_amount = 0
+    total_credit_amount = 0
+    total_entry_count = 0
 
     for line in content.splitlines():
         line = line.strip()
@@ -83,6 +88,13 @@ def parse_nacha_grouped(content):
             amount = int(line[29:39]) / 100.0
             transaction_type, entry_class = determine_transaction_type(transaction_code)
             
+            # Update file-level totals
+            if transaction_type == 'Debit':
+                total_debit_amount += amount
+            else:
+                total_credit_amount += amount
+            total_entry_count += 1
+            
             entry = {
                 'Transaction Code': transaction_code,
                 'Transaction Type': transaction_type,
@@ -115,13 +127,14 @@ def parse_nacha_grouped(content):
             }
 
         elif record_type == '9':  # File Control
+            # Use our calculated totals instead of the values from the file
             file_control = {
                 'Batch Count': line[1:7],
                 'Block Count': line[7:13],
                 'Entry/Addenda Count': line[13:21],
                 'Entry Hash': line[21:31],
-                'Total Debit Entry Dollar Amount': "{:.2f}".format(abs(int(line[31:43])) / 100.0),
-                'Total Credit Entry Dollar Amount': "{:.2f}".format(abs(int(line[43:55])) / 100.0),
+                'Total Debit Entry Dollar Amount': "{:.2f}".format(total_debit_amount),
+                'Total Credit Entry Dollar Amount': "{:.2f}".format(total_credit_amount),
                 'Reserved': line[55:94].strip()
             }
 
