@@ -1,3 +1,8 @@
+/* Add this at the very beginning of your style.css */
+* {
+    box-sizing: border-box;
+}
+
 :root {
     --primary-blue: #1434CB;
     --accent-blue: #e7edff;
@@ -68,16 +73,71 @@ body {
     text-decoration: underline;
 }
 
-.upload-form {
+/* Action Cards for Index Page */
+.action-cards {
     display: flex;
-    gap: 1rem;
-    margin-bottom: 3rem;
-    align-items: center;
+    gap: 2rem;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+    justify-content: center; /* Center cards if space allows */
+}
+
+.action-card {
+    flex: 1;
+    min-width: 300px;
+    max-width: 450px; /* Limit max width for larger screens */
+    background: var(--white);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
+    display: flex; /* Use flexbox for internal layout */
+    flex-direction: column;
+    align-items: center; /* Center items horizontally within the card */
+    text-decoration: none; /* Remove underline for anchor tag cards */
+    color: inherit; /* Inherit text color */
+    text-align: center; /* Center text within card */
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    border-color: var(--primary-blue);
+}
+
+.action-icon {
+    font-size: 2.5rem;
+    color: var(--primary-blue);
+    margin-bottom: 1rem;
+}
+
+.action-card h2 {
+    color: var(--primary-blue);
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    font-size: 1.8rem;
+}
+
+.action-card p {
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    flex-grow: 1; /* Allow paragraph to take up space */
+}
+
+/* Specific styling for the parse action card form */
+.action-card form {
+    display: flex;
+    flex-direction: column;
+    width: 100%; /* Ensure form takes full width of card */
+    align-items: center; /* Center form elements if they are not 100% wide */
 }
 
 .file-upload-wrapper {
-    flex: 1;
     position: relative;
+    width: 100%; /* Take full width of its parent */
+    margin-bottom: 1rem; /* Space between upload and button */
 }
 
 .file-upload-label {
@@ -92,6 +152,9 @@ body {
     transition: all 0.3s ease;
     color: #555;
     font-weight: 500;
+    /* width: calc(100% - 3rem); Removed this as box-sizing handles it better */
+    width: 100%; /* Now, with box-sizing: border-box, this will include padding */
+    justify-content: center; /* Center content within the label */
 }
 
 .file-upload-label:hover {
@@ -104,7 +167,7 @@ body {
     color: var(--primary-blue);
 }
 
-#nacha-file {
+.file-upload-wrapper input[type="file"] {
     position: absolute;
     left: 0;
     top: 0;
@@ -127,6 +190,9 @@ body {
     display: flex;
     align-items: center;
     gap: 0.6rem;
+    justify-content: center; /* Center content in button */
+    width: 100%; /* Make button full width */
+    text-decoration: none; /* Crucial for the anchor tag button */
 }
 
 .parse-button:hover {
@@ -138,6 +204,7 @@ body {
     font-size: 1rem;
 }
 
+/* Flash Messages */
 .flash-messages {
     margin-bottom: 1.5rem;
 }
@@ -160,11 +227,21 @@ body {
     margin-bottom: 1rem;
 }
 
-.results-container {
+.flash-warning {
+    padding: 1rem;
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+/* Results Display */
+.parsed-content {
     margin-top: 2rem;
 }
 
-.section {
+.parsed-section {
     margin-bottom: 2.5rem;
     padding: 1.5rem;
     border-radius: 10px;
@@ -173,7 +250,7 @@ body {
     border-left: 4px solid var(--primary-blue);
 }
 
-.section h2, .batch-section h3 {
+.parsed-section h2, .batch-item h3 {
     margin-top: 0;
     margin-bottom: 1.5rem;
     color: var(--primary-blue);
@@ -182,27 +259,33 @@ body {
     gap: 0.75rem;
 }
 
-.section h2 {
+.parsed-section h2 {
     font-size: 1.5rem;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 0.75rem;
 }
 
-.batch-section h3 {
-    font-size: 1.25rem;
+.batch-item h3 {
+    font-size: 1.3rem;
 }
 
-.batch-card {
+.batch-item {
     background-color: var(--white);
-    padding: 0;
+    padding: 0; /* Remove padding from card itself, add to inner content */
     border-radius: 12px;
     margin-bottom: 3rem;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     border: 1px solid var(--border-color);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.section-header {
+.batch-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.batch-item h3 {
     font-size: 1.3rem;
     font-weight: 700;
     color: var(--white);
@@ -214,9 +297,38 @@ body {
     gap: 0.75rem;
 }
 
-.section-header i {
+.batch-item h3 i {
     font-size: 1.1rem;
 }
+
+.batch-item h4 {
+    color: #333;
+    font-size: 1.15rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem; /* Indent for clarity */
+}
+
+.batch-item .entry-item h5 {
+    color: #555;
+    font-size: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--accent-blue);
+    padding-left: 1.25rem;
+}
+
+.batch-item .addenda-item h6 {
+    color: #777;
+    font-size: 0.95rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+    border-left: 2px dashed var(--border-color);
+    padding-left: 1.75rem;
+}
+
 
 .table-container {
     overflow-x: auto;
@@ -254,6 +366,360 @@ td {
 tr:nth-child(even) td {
     background-color: #f9f9f9;
 }
+
+.warning-message, .info-message {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+}
+
+.warning-message {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.info-message {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* NACHA Creation Form Styles */
+.creation-container {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.form-section {
+    background: #f8f9fa; /* Lighter background for sections */
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color); /* Added border */
+}
+
+.form-section h2 {
+    color: var(--primary-blue);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Adjusted min-width for better fit */
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 0; /* Managed by grid gap */
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+    /* Adjusted width to 100% because box-sizing: border-box will handle padding */
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(20, 52, 203, 0.2);
+}
+
+.form-text {
+    font-size: 0.85rem;
+    color: #666;
+    display: block;
+    margin-top: 0.25rem;
+}
+
+/* Entry Detail Section specific styles */
+.entry-details-container {
+    border: 1px dashed var(--primary-blue); /* Distinct border for entries */
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    background-color: #e7edff50; /* Slightly different background */
+}
+
+.entry-details-container h3 {
+    margin-top: 0;
+    color: var(--primary-blue);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.entry-item {
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.entry-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dotted var(--border-color);
+}
+
+.entry-item-header h4 {
+    margin: 0;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.remove-entry-button {
+    background: var(--error-red);
+    color: white;
+    border: none;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background-color 0.2s;
+}
+
+.remove-entry-button:hover {
+    background-color: #c82333;
+}
+
+.add-entry-button-batch { /* Corrected class name as per your JS */
+    background-color: var(--success-green);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    justify-content: center; /* Ensure it's centered */
+    width: 100%; /* Make it full width if desired */
+}
+
+.add-entry-button-batch:hover { /* Corrected class name */
+    background-color: #218838;
+}
+
+/* Add Batch Button */
+.add-batch-button {
+    background-color: var(--info-blue);
+    color: white;
+    padding: 0.85rem 2rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    justify-content: center;
+    width: auto; /* Allow content to dictate width, or 100% if desired */
+    margin: 2rem auto; /* Center the button */
+    display: block; /* Make it a block element to respect margin: auto */
+}
+
+.add-batch-button:hover {
+    background-color: #14889d;
+}
+
+/* Remove Batch Button */
+.remove-batch-button {
+    background-color: var(--error-red);
+    color: white;
+    border: none;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background-color 0.2s;
+    margin-left: auto; /* Push to the right in the flex container */
+    display: flex; /* For centering content within it */
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.remove-batch-button:hover {
+    background-color: #c82333;
+}
+
+
+.instructions {
+    background-color: #f8f9fa;
+    border-left: 4px solid var(--primary-blue);
+    padding: 1.5rem;
+    border-radius: 6px;
+    margin: 2rem 0;
+}
+
+.instructions h3 {
+    margin-top: 0;
+    color: var(--primary-blue);
+}
+
+.instructions ol {
+    padding-left: 1.5rem;
+    line-height: 1.8;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.generate-button {
+    background-color: var(--primary-blue);
+    color: white;
+    padding: 0.85rem 2rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.generate-button:hover {
+    background-color: #102cb0;
+}
+
+.cancel-button {
+    background-color: #6c757d;
+    color: white;
+    padding: 0.85rem 2rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none; /* For anchor tag buttons */
+}
+
+.cancel-button:hover {
+    background-color: #5a6268;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .container {
+        padding: 1.5rem;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .action-cards {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .action-card {
+        width: 100%;
+        min-width: unset;
+        max-width: unset;
+    }
+
+    .file-upload-label {
+        /* width: calc(100% - 3rem); Removed for box-sizing */
+        width: 100%; /* Now works with box-sizing */
+    }
+
+    /* .upload-form is not in your HTML, assuming it's a typo for .action-card form */
+    .action-card form {
+        flex-direction: column;
+    }
+
+    .file-upload-wrapper {
+        width: 100%;
+    }
+
+    .parse-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .parsed-section {
+        padding: 1.25rem;
+    }
+
+    th, td {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .parsed-section h2 {
+        font-size: 1.3rem;
+    }
+
+    .batch-item h3 {
+        font-size: 1.1rem;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr; /* Stack columns on small screens */
+    }
+
+    .form-actions {
+        flex-direction: column;
+        align-items: flex-end;
+    }
+
+    .generate-button, .cancel-button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 
 .badge {
     display: inline-block;
@@ -339,50 +805,22 @@ tr[data-entry-class="Direct-Deposit"] {
     border-left: 3px solid var(--info-blue);
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
-    .container {
-        padding: 1.5rem;
-    }
-    
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-    
-    .upload-form {
-        flex-direction: column;
-    }
-    
-    .file-upload-wrapper {
-        width: 100%;
-    }
-    
-    .parse-button {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .section, .batch-section {
-        padding: 1.25rem;
-    }
-    
-    th, td {
-        padding: 0.75rem;
-        font-size: 0.9rem;
-    }
-    
-    .section h2 {
-        font-size: 1.3rem;
-    }
-    
-    .batch-section h3 {
-        font-size: 1.1rem;
-    }
+.section-header {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 0;
+    padding: 1rem 1.5rem;
+    background-color: var(--primary-blue);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-/* Animation for batch cards */
+.section-header i {
+    font-size: 1.1rem;
+}
+
 .batch-card {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -391,3 +829,38 @@ tr[data-entry-class="Direct-Deposit"] {
     transform: translateY(-3px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
+
+/* Batch Styling */
+.batch-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid #e1e7f0;
+    transition: all 0.3s ease;
+}
+
+.batch-section:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.batch-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e1e7f0;
+}
+
+/* Adjusted for the create file button within the action card */
+.action-card .parse-button {
+    margin-top: auto; /* Pushes the button to the bottom if .action-card is flex-direction: column */
+}
+
+/* Added specific class for the "Create File" button in the HTML.
+   If you didn't add it in HTML, then remove this. */
+/* .action-card .create-button {
+    margin-top: auto;
+    width: 100%;
+} */
