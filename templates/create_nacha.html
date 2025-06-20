@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create NACHA File</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <img src="https://i2ccdn.b-cdn.net/wp-content/themes/i2cinc-2024/assets/images/logo.svg" alt="i2c Logo" class="logo">
+        <div>
+            <h1>Create NACHA File</h1>
+            <div class="attribution">
+                Developed by <strong>Taha Naveed</strong> &ndash; <a href="mailto:tnaveed02@i2cinc.com">tnaveed02@i2cinc.com</a>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="creation-container">
+        <form method="POST" action="{{ url_for('handle_create_request') }}">
+
+            <div class="form-section">
+                <h2><i class="fas fa-file-alt"></i> File Header</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="priority_code">Priority Code</label>
+                        <input type="text" id="priority_code" name="priority_code" value="01" maxlength="2" pattern="\d{2}" title="Two digits, e.g., 01" required>
+                        <span class="form-text">Usually '01'. Two digits.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="immediate_destination">Immediate Destination (Routing #)</label>
+                        <input type="text" id="immediate_destination" name="immediate_destination"
+                               pattern="\d{9}" maxlength="9" title="9 digits (e.g., 123456789)" required>
+                        <span class="form-text">Receiving bank routing number. 9 digits.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="immediate_origin">Immediate Origin (Company ID)</label>
+                        <input type="text" id="immediate_origin" name="immediate_origin"
+                               pattern="\d{9}" maxlength="9" title="9 digits (e.g., 123456789)" required>
+                        <span class="form-text">Your company identification. 9 digits.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="file_creation_date">File Creation Date (YYMMDD)</label>
+                        <input type="text" id="file_creation_date" name="file_creation_date" value="{{ today_date if today_date is defined else '' }}" maxlength="6" pattern="\d{6}" title="YYMMDD format, e.g., 240618">
+                        <span class="form-text">Defaults to today. YYMMDD.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="file_creation_time">File Creation Time (HHMM)</label>
+                        <input type="text" id="file_creation_time" name="file_creation_time" value="{{ current_time if current_time is defined else '' }}" maxlength="4" pattern="\d{4}" title="HHMM format, e.g., 0930">
+                        <span class="form-text">Defaults to current time. HHMM.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="file_id_modifier">File ID Modifier</label>
+                        <input type="text" id="file_id_modifier" name="file_id_modifier" value="A"
+                               pattern="[A-Za-z]" maxlength="1" required>
+                        <span class="form-text">Single letter (A-Z).</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="record_size">Record Size</label>
+                        <input type="text" id="record_size" name="record_size" value="094" maxlength="3" pattern="\d{3}" required>
+                        <span class="form-text">Usually '094'. Three digits.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="blocking_factor">Blocking Factor</label>
+                        <input type="text" id="blocking_factor" name="blocking_factor" value="10" maxlength="2" pattern="\d{1,2}" required>
+                        <span class="form-text">Number of physical records per block. Usually '10'.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="format_code">Format Code</label>
+                        <input type="text" id="format_code" name="format_code" value="1" maxlength="1" pattern="\d{1}" required>
+                        <span class="form-text">Usually '1'. Single digit.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="immediate_destination_name">Destination Bank Name</label>
+                        <input type="text" id="immediate_destination_name" name="immediate_destination_name" maxlength="23" required>
+                        <span class="form-text">Max 23 characters.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="immediate_origin_name">Origin Company Name</label>
+                        <input type="text" id="immediate_origin_name" name="immediate_origin_name" maxlength="23" required>
+                        <span class="form-text">Max 23 characters.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reference_code">Reference Code</label>
+                        <input type="text" id="reference_code" name="reference_code" maxlength="8">
+                        <span class="form-text">Optional. Max 8 characters.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="batches-container">
+                </div>
+
+            <button type="button" class="add-batch-button" id="add-batch-btn">
+                <i class="fas fa-plus-circle"></i> Add Another Batch
+            </button>
+            <input type="hidden" id="num_batches" name="num_batches" value="0">
+
+            <div class="form-actions">
+                <a href="{{ url_for('index') }}" class="cancel-button">
+                    <i class="fas fa-times-circle"></i> Cancel
+                </a>
+                <button type="submit" class="generate-button">
+                    <i class="fas fa-file-download"></i> Generate NACHA File
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<script>
+    let batchCount = 0; // Global counter for batches
+    // Use an object to store entry counts for each batch, keyed by batch index
+    let entryCountForBatch = {}; // Stores { batchIndex: numEntries }
+
+    // Function to get current date/time for defaults
+    function getCurrentDateFormatted() {
+        const today = new Date();
+        const year = String(today.getFullYear()).slice(-2);
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}${month}${day}`;
+    }
+
+    function getTomorrowDateFormatted() {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const year = String(tomorrow.getFullYear()).slice(-2);
+        const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const day = String(tomorrow.getDate()).padStart(2, '0');
+        return `${year}${month}${day}`;
+    }
+
+    function getCurrentTimeFormatted() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        return `${hours}${minutes}`;
+    }
+
+    // Update hidden input fields for counts
+    function updateCounts() {
+        document.getElementById('num_batches').value = batchCount;
+
+        // Update entry count for each batch
+        document.querySelectorAll('.batch-section').forEach((batchDiv) => {
+            const batchIdx = parseInt(batchDiv.dataset.batchIndex);
+            const numEntriesInput = document.getElementById(`num_entries_batch_${batchIdx}`);
+            if (numEntriesInput) {
+                numEntriesInput.value = entryCountForBatch[batchIdx] || 0;
+            }
+        });
+    }
+
+    function addBatch() {
+        const currentBatchIndex = batchCount; // Use current batchCount as index for this new batch
+        batchCount++; // Increment total batch count for the next batch
+
+        const batchesContainer = document.getElementById('batches-container');
+        const batchDiv = document.createElement('div');
+        batchDiv.className = 'form-section batch-section';
+        batchDiv.id = `batch-${currentBatchIndex}`;
+        batchDiv.dataset.batchIndex = currentBatchIndex; // Store index for easy reference
+
+        batchDiv.innerHTML = `
+            <h3><i class="fas fa-layer-group"></i> Batch ${currentBatchIndex + 1} Details
+                <button type="button" class="remove-batch-button" data-batch-index="${currentBatchIndex}">
+                    <i class="fas fa-trash-alt"></i> Remove Batch
+                </button>
+            </h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_service_class_code">Service Class Code</label>
+                    <select id="batch_${currentBatchIndex}_service_class_code" name="batch_${currentBatchIndex}_service_class_code" required>
+                        <option value="200">200 - Mixed Debits and Credits</option>
+                        <option value="220">220 - Credits Only</option>
+                        <option value="225">225 - Debits Only</option>
+                    </select>
+                    <span class="form-text">Defines type of transactions in batch.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_company_name">Company Name</label>
+                    <input type="text" id="batch_${currentBatchIndex}_company_name" name="batch_${currentBatchIndex}_company_name" maxlength="16" required>
+                    <span class="form-text">Max 16 characters.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_company_discretionary_data">Company Discretionary Data</label>
+                    <input type="text" id="batch_${currentBatchIndex}_company_discretionary_data" name="batch_${currentBatchIndex}_company_discretionary_data" maxlength="20">
+                    <span class="form-text">Optional. Max 20 characters.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_company_identification">Company Identification</label>
+                    <input type="text" id="batch_${currentBatchIndex}_company_identification" name="batch_${currentBatchIndex}_company_identification" maxlength="10" required>
+                    <span class="form-text">EIN or DFI plus company ID. Max 10 chars.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_standard_entry_class_code">SEC Code</label>
+                    <select id="batch_${currentBatchIndex}_standard_entry_class_code" name="batch_${currentBatchIndex}_standard_entry_class_code" required>
+                        <option value="PPD">PPD - Prearranged Payment/Deposit</option>
+                        <option value="CCD">CCD - Cash Concentration/Disbursement</option>
+                        <option value="WEB">WEB - Internet Initiated Entry</option>
+                        <option value="TEL">TEL - Telephone Initiated Entry</option>
+                        <option value="CIE">CIE - Customer Initiated Entry</option>
+                        <option value="POP">POP - Point-of-Purchase Entry</option>
+                        <option value="RCK">RCK - Re-presented Check Entry</option>
+                        <option value="TRX">TRX - Corporate Trade Exchange</option>
+                    </select>
+                    <span class="form-text">Standard Entry Class Code.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_company_entry_description">Entry Description</label>
+                    <input type="text" id="batch_${currentBatchIndex}_company_entry_description" name="batch_${currentBatchIndex}_company_entry_description" maxlength="10" required>
+                    <span class="form-text">Describes type of entries in batch. Max 10 chars.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_descriptive_date">Company Descriptive Date (YYMMDD)</label>
+                    <input type="text" id="batch_${currentBatchIndex}_descriptive_date" name="batch_${currentBatchIndex}_descriptive_date" maxlength="6" pattern="\\d{6}" title="YYMMDD format, e.g., 240618">
+                    <span class="form-text">Optional. Date company desires to be associated with batch.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_effective_entry_date">Effective Entry Date (YYMMDD)</label>
+                    <input type="text" id="batch_${currentBatchIndex}_effective_entry_date" name="batch_${currentBatchIndex}_effective_entry_date" value="${getTomorrowDateFormatted()}" maxlength="6" pattern="\\d{6}" title="YYMMDD format, e.g., 240619" required>
+                    <span class="form-text">Date entries are to be settled. Defaults to tomorrow.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_settlement_date">Settlement Date (Julian)</label>
+                    <input type="text" id="batch_${currentBatchIndex}_settlement_date" name="batch_${currentBatchIndex}_settlement_date" value="   " maxlength="3">
+                    <span class="form-text">Optional. Usually spaces.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_originator_status_code">Originator Status Code</label>
+                    <input type="text" id="batch_${currentBatchIndex}_originator_status_code" name="batch_${currentBatchIndex}_originator_status_code" value="1" maxlength="1" pattern="\\d{1}" required>
+                    <span class="form-text">Usually '1'.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_originating_dfi_identification">Originating DFI Identification</label>
+                    <input type="text" id="batch_${currentBatchIndex}_originating_dfi_identification" name="batch_${currentBatchIndex}_originating_dfi_identification" pattern="\\d{8}" maxlength="8" required>
+                    <span class="form-text">First 8 digits of your bank's routing number.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch_${currentBatchIndex}_batch_number">Batch Number</label>
+                    <input type="text" id="batch_${currentBatchIndex}_batch_number" name="batch_${currentBatchIndex}_batch_number" value="${currentBatchIndex + 1}" maxlength="7" pattern="\\d{1,7}" required>
+                    <span class="form-text">Sequential number for batches. Max 7 digits.</span>
+                </div>
+            </div>
+
+            <div class="entry-details-container">
+                <h4><i class="fas fa-list-alt"></i> Entries for Batch ${currentBatchIndex + 1}</h4>
+                <div id="entries-list-${currentBatchIndex}" class="entry-details-list">
+                    <p style="text-align: center; color: #777;">Click "Add Entry" to add transactions for this batch.</p>
+                </div>
+                <button type="button" class="add-entry-button-batch" data-batch-index="${currentBatchIndex}">
+                    <i class="fas fa-plus-circle"></i> Add Entry to Batch ${currentBatchIndex + 1}
+                </button>
+                <input type="hidden" id="num_entries_batch_${currentBatchIndex}" name="num_entries_batch_${currentBatchIndex}" value="0">
+            </div>
+        `;
+        batchesContainer.appendChild(batchDiv);
+
+        // Initialize entry count for this new batch
+        entryCountForBatch[currentBatchIndex] = 0;
+        addEntry(currentBatchIndex); // Add one default entry for the new batch
+
+        updateCounts(); // Update the total batch count and individual batch entry counts
+    }
+
+    function addEntry(batchIndex) {
+        const entriesList = document.getElementById(`entries-list-${batchIndex}`);
+        const placeholderParagraph = entriesList.querySelector('p');
+        if (placeholderParagraph) {
+            placeholderParagraph.remove();
+        }
+
+        const currentEntryIndex = entryCountForBatch[batchIndex];
+        entryCountForBatch[batchIndex]++; // Increment entry count for this specific batch
+
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'entry-item';
+        entryDiv.id = `entry-item-${batchIndex}-${currentEntryIndex}`;
+        entryDiv.dataset.batchIndex = batchIndex;
+        entryDiv.dataset.entryIndex = currentEntryIndex;
+
+        // Use padStart for trace number to ensure it's 15 digits
+        const defaultTraceNumber = String(currentEntryIndex + 1).padStart(15, '0');
+
+        entryDiv.innerHTML = `
+            <div class="entry-item-header">
+                <h4>Entry #${currentEntryIndex + 1}</h4>
+                <button type="button" class="remove-entry-button" data-batch-index="${batchIndex}" data-entry-index="${currentEntryIndex}">
+                    <i class="fas fa-trash-alt"></i> Remove
+                </button>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="entry_${batchIndex}_${currentEntryIndex}_transaction_code">Transaction Code</label>
+                    <select id="entry_${batchIndex}_${currentEntryIndex}_transaction_code" name="entry_${batchIndex}_${currentEntryIndex}_transaction_code" required>
+                        <option value="27">27 - Checking Account Debit (e.g., bill payment)</option>
+                        <option value="22">22 - Checking Account Debit (Prearranged PMT/Dep)</option>
+                        <option value="21">21 - Checking Account Credit (e.g., direct deposit)</option>
+                        <option value="32">32 - Savings Account Debit (Prearranged PMT/Dep)</option>
+                        <option value="37">37 - Savings Account Debit (e.g., bill payment)</option>
+                        <option value="31">31 - Savings Account Credit (e.g., direct deposit)</option>
+                    </select>
+                    <span class="form-text">2-digit code for the transaction.</span>
+                </div>
+                <div class="form-group">
+                    <label for="entry_${batchIndex}_${currentEntryIndex}_receiving_dfi_identification">Receiving DFI ID (Routing #)</label>
+                    <input type="text" id="entry_${batchIndex}_${currentEntryIndex}_receiving_dfi_identification" name="entry_${batchIndex}_${currentEntryIndex}_receiving_dfi_identification"
+                            pattern="\\d{8}" maxlength="8" title="8 digits for DFI identification" required>
+                    <span class="form-text">First 8 digits of recipient's bank routing #.</span>
+                </div>
+                <div class="form-group">
+                    <label for="entry_${batchIndex}_${currentEntryIndex}_check_digit">Check Digit</label>
+                    <input type="text" id="entry_${batchIndex}_${currentEntryIndex}_check_digit" name="entry_${batchIndex}_${currentEntryIndex}_check_digit"
+                            pattern="\\d{1}" maxlength="1" title="Single digit check digit" required>
+                    <span class="form-text">Last digit of recipient's bank routing #.</span>
+                </div>
+                <div class="form-group">
+                    <label for="entry_${batchIndex}_${currentEntryIndex}_dfi_account_number">DFI Account Number</label>
+                    <input type="text" id="entry_${batchIndex}_${currentEntryIndex}_dfi_account_number" name="entry_${batchIndex}_${currentEntryIndex}_dfi_account_number"
+                            maxlength="17" required>
+                    <span class="form-text">Recipient's account number. Max 17 characters.</span>
+                </div>
+                <div class="form-group">
+                    <label for="entry_${batchIndex}_${currentEntryIndex}_amount">Amount ($)</label>
+                    <input type="text" id="entry_${batchIndex}_${currentEntryIndex}_amount" name="entry_${batchIndex}_${currentEntryIndex}_amount"
+                            pattern="^\\d+(\\.\\d{1,2})?$" title="Currency amount, e.g., 123.45" required>
+                    <span class="form-text">Amount in dollars and cents. e.g., 100.50</span>
+                </div>
+                <div class="form-group">
+                    <label for="entry_${batchIndex}_${currentEntryIndex}_individual_identification_number">Individual ID Number</label>
+                    <input type="text" id="entry_${batchIndex}_${currentEntryIndex}_individual_identification_number" name="entry_${batchIndex}_${currentEntryIndex}_individual_identification_number" maxlength="15">
+                    <span class="form-text">Optional. Max 15 characters.</span>
+                </div>
+                <div class="form-group">
+                    <label for="entry_${batchIndex}_${currentEntryIndex}_individual_name">Individual Name</label>
+                    <input type="text" id="entry_${batchIndex}_${currentEntryIndex}_individual_name" name="entry_${batchIndex}_${currentEntryIndex}_individual_name" maxlength="22" required>
+                    <span class="form-text">Recipient's name. Max 22 characters.</span>
+                </div>
+                <div class="form-group">
+                    <label for="entry_${batchIndex}_${currentEntryIndex}_discretionary_data">Discretionary Data</label>
+                    <input type="text" id="entry_${batchIndex}_${currentEntryIndex}_discretionary_data" name="entry_${batchIndex}_${currentEntryIndex}_discretionary_data" maxlength="2">
+                    <span class="form-text">Optional. Max 2 characters.</span>
+                </div>
+                <div class="form-group">
+                    <label for="entry_${batchIndex}_${currentEntryIndex}_addenda_record_indicator">Addenda Record Indicator</label>
+                    <select id="entry_${batchIndex}_${currentEntryIndex}_addenda_record_indicator" name="entry_${batchIndex}_${currentEntryIndex}_addenda_record_indicator" required>
+                        <option value="0">0 - No Addenda Record</option>
+                        <option value="1">1 - One Addenda Record</option>
+                    </select>
+                    <span class="form-text">'1' if an Addenda Record follows.</span>
+                </div>
+                <div class="form-group">
+                    <label for="entry_${batchIndex}_${currentEntryIndex}_trace_number">Trace Number</label>
+                    <input type="text" id="entry_${batchIndex}_${currentEntryIndex}_trace_number" name="entry_${batchIndex}_${currentEntryIndex}_trace_number"
+                            maxlength="15" pattern="\\d{15}" title="15-digit trace number" value="${defaultTraceNumber}" required>
+                    <span class="form-text">Unique 15-digit sequence. Defaults to sequential.</span>
+                </div>
+            </div>
+        `;
+        entriesList.appendChild(entryDiv);
+        updateCounts(); // Update entry count for the specific batch
+    }
+
+    function removeBatch(indexToRemove) {
+        const batchDiv = document.getElementById(`batch-${indexToRemove}`);
+        if (batchDiv) {
+            batchDiv.remove();
+            batchCount--;
+            delete entryCountForBatch[indexToRemove]; // Remove entry count for this batch
+
+            // Re-index remaining batches
+            document.querySelectorAll('.batch-section').forEach((batchElem, newBatchIndex) => {
+                const oldBatchIndex = parseInt(batchElem.dataset.batchIndex);
+
+                // Only re-index elements if their old index was greater than the removed one
+                // And their new index is different from their old index
+                if (oldBatchIndex > indexToRemove || oldBatchIndex !== newBatchIndex) {
+                    batchElem.id = `batch-${newBatchIndex}`;
+                    batchElem.dataset.batchIndex = newBatchIndex;
+
+                    // Update batch header text
+                    batchElem.querySelector('h3').innerHTML = `<i class="fas fa-layer-group"></i> Batch ${newBatchIndex + 1} Details
+                        <button type="button" class="remove-batch-button" data-batch-index="${newBatchIndex}">
+                            <i class="fas fa-trash-alt"></i> Remove Batch
+                        </button>`;
+                    batchElem.querySelector('.entry-details-container h4').innerHTML = `<i class="fas fa-list-alt"></i> Entries for Batch ${newBatchIndex + 1}`;
+
+                    // Update all input names and IDs within the batch
+                    batchElem.querySelectorAll('[name^="batch_"], [name^="num_entries_batch_"]').forEach(input => {
+                        const oldName = input.name;
+                        const newName = oldName.replace(/batch_\d+/, `batch_${newBatchIndex}`);
+                        input.name = newName;
+                        input.id = newName; // Assuming ID matches name for simplicity
+                    });
+
+                    // Update button data attributes
+                    batchElem.querySelector('.remove-batch-button').dataset.batchIndex = newBatchIndex;
+                    batchElem.querySelector('.add-entry-button-batch').dataset.batchIndex = newBatchIndex;
+                    batchElem.querySelector('.add-entry-button-batch').textContent = `Add Entry to Batch ${newBatchIndex + 1}`;
+
+
+                    // Update the entries-list ID
+                    const entriesListElem = batchElem.querySelector('.entry-details-list');
+                    if (entriesListElem) {
+                        entriesListElem.id = `entries-list-${newBatchIndex}`;
+                    }
+
+
+                    // Re-index entries within this batch
+                    let currentBatchEntryCount = 0;
+                    batchElem.querySelectorAll('.entry-item').forEach((entryElem, newEntryIndex) => {
+                        currentBatchEntryCount++;
+                        entryElem.id = `entry-item-${newBatchIndex}-${newEntryIndex}`;
+                        entryElem.dataset.batchIndex = newBatchIndex;
+                        entryElem.dataset.entryIndex = newEntryIndex;
+
+                        entryElem.querySelector('h4').innerHTML = `Entry #${newEntryIndex + 1}`;
+                        entryElem.querySelector('.remove-entry-button').dataset.batchIndex = newBatchIndex;
+                        entryElem.querySelector('.remove-entry-button').dataset.entryIndex = newEntryIndex;
+
+                        entryElem.querySelectorAll('[name^="entry_"]').forEach(input => {
+                            const oldName = input.name;
+                            const newName = oldName.replace(/entry_\d+_(\d+)_/, `entry_${newBatchIndex}_${newEntryIndex}_`);
+                            input.name = newName;
+                            input.id = newName;
+                        });
+                    });
+                    entryCountForBatch[newBatchIndex] = currentBatchEntryCount; // Update count for re-indexed batch
+                }
+            });
+
+            updateCounts(); // Final update after re-indexing
+        }
+    }
+
+    function removeEntry(batchIndex, entryIndexToRemove) {
+        const entryToRemove = document.getElementById(`entry-item-${batchIndex}-${entryIndexToRemove}`);
+        if (entryToRemove) {
+            entryToRemove.remove();
+            entryCountForBatch[batchIndex]--;
+
+            const entriesList = document.getElementById(`entries-list-${batchIndex}`);
+            if (entryCountForBatch[batchIndex] === 0) {
+                entriesList.innerHTML = '<p style="text-align: center; color: #777;">Click "Add Entry" to add transactions for this batch.</p>';
+            }
+
+            // Re-index remaining entries in this specific batch
+            entriesList.querySelectorAll('.entry-item').forEach((entryElem, newEntryIndex) => {
+                const oldEntryIndex = parseInt(entryElem.dataset.entryIndex);
+                if (oldEntryIndex > entryIndexToRemove || oldEntryIndex !== newEntryIndex) {
+                    entryElem.id = `entry-item-${batchIndex}-${newEntryIndex}`;
+                    entryElem.dataset.entryIndex = newEntryIndex;
+
+                    entryElem.querySelector('h4').innerHTML = `Entry #${newEntryIndex + 1}`;
+                    entryElem.querySelector('.remove-entry-button').dataset.entryIndex = newEntryIndex;
+
+                    entryElem.querySelectorAll('[name^="entry_"]').forEach(input => {
+                        const oldName = input.name;
+                        const newName = oldName.replace(/entry_\d+_(\d+)_/, `entry_${batchIndex}_${newEntryIndex}_`);
+                        input.name = newName;
+                        input.id = newName;
+                    });
+                }
+            });
+            updateCounts();
+        }
+    }
+
+
+    // --- Event Listeners ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // Set default values for file header date/time inputs if not provided by Flask
+        // Current date for File Creation Date
+        if (!document.getElementById('file_creation_date').value) {
+            document.getElementById('file_creation_date').value = getCurrentDateFormatted();
+        }
+        // Current time for File Creation Time
+        if (!document.getElementById('file_creation_time').value) {
+            document.getElementById('file_creation_time').value = getCurrentTimeFormatted();
+        }
+        // Tomorrow's date for Effective Entry Date
+        document.getElementById('effective_entry_date').value = getTomorrowDateFormatted();
+
+
+        addBatch(); // Add one batch by default on page load
+        updateCounts(); // Initialize counts
+    });
+
+    // Delegated event listener for "Add Another Batch"
+    document.getElementById('add-batch-btn').addEventListener('click', () => {
+        addBatch();
+    });
+
+    // Delegated event listener for "Add Entry" buttons (within batches)
+    document.addEventListener('click', (event) => {
+        if (event.target.classList.contains('add-entry-button-batch') || event.target.closest('.add-entry-button-batch')) {
+            const button = event.target.classList.contains('add-entry-button-batch') ? event.target : event.target.closest('.add-entry-button-batch');
+            const batchIndex = parseInt(button.dataset.batchIndex);
+            addEntry(batchIndex);
+        }
+    });
+
+    // Delegated event listener for "Remove Batch" buttons
+    document.addEventListener('click', (event) => {
+        if (event.target.classList.contains('remove-batch-button') || event.target.closest('.remove-batch-button')) {
+            const button = event.target.classList.contains('remove-batch-button') ? event.target : event.target.closest('.remove-batch-button');
+            const batchIndex = parseInt(button.dataset.batchIndex);
+            if (confirm(`Are you sure you want to remove Batch ${batchIndex + 1} and all its entries?`)) {
+                 removeBatch(batchIndex);
+            }
+        }
+    });
+
+    // Delegated event listener for "Remove Entry" buttons
+    document.addEventListener('click', (event) => {
+        if (event.target.classList.contains('remove-entry-button') || event.target.closest('.remove-entry-button')) {
+            const button = event.target.classList.contains('remove-entry-button') ? event.target : event.target.closest('.remove-entry-button');
+            const batchIndex = parseInt(button.dataset.batchIndex);
+            const entryIndex = parseInt(button.dataset.entryIndex);
+            if (confirm(`Are you sure you want to remove Entry ${entryIndex + 1} from Batch ${batchIndex + 1}?`)) {
+                removeEntry(batchIndex, entryIndex);
+            }
+        }
+    });
+
+</script>
+</body>
+</html>
